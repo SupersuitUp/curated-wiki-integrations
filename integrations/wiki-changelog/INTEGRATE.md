@@ -64,7 +64,7 @@ docs/
    ```mdx
    import RecentlyAdded from '@site/src/components/RecentlyAdded';
 
-   ## Recently Added
+   ## Recently added or updated
    <RecentlyAdded limit={8} />
    ```
 
