@@ -94,6 +94,16 @@ docs/
 
    The plugin runs git commands during build, so the build host needs git installed and a clean repo with history. Vercel build images include git, so this works out of the box on Vercel.
 
+## New / Updated badges
+
+Each row in both `RecentlyAdded` and `Changelog` is prefixed with a small pill badge: **New** (green) when the file's first git commit and most recent commit are the same (i.e., it has not been edited since creation), or **Updated** (blue) when the dates diverge.
+
+`Changelog` honors its `sortBy` prop when assigning the badge:
+- `sortBy="created"` (default): every row is anchored to the creation event, so the badge is always **New**.
+- `sortBy="updated"`: rows surface because of edit activity, so the badge is **New** only when the file has never been edited; otherwise **Updated**.
+
+The badge styles are inlined in each component as `NEW_BADGE_STYLE` and `UPDATED_BADGE_STYLE`. Override them by editing the constants. They render correctly on both light and dark Docusaurus themes because they use rgba backgrounds with explicit text colors.
+
 ## Customization
 
 - **Sort by created vs. updated.** `Changelog` accepts a `sortBy="created" | "updated"` prop (default `"created"`). `RecentlyAdded` always sorts by `lastModifiedDate` (most recent activity first).
