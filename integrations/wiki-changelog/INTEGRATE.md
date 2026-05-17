@@ -102,8 +102,23 @@ docs/
 - **Custom date formatting.** The components currently use `toLocaleDateString` for month headings and `toISOString().slice(0, 10)` for daily dates. Replace with your preferred format.
 - **Section grouping.** `Changelog` groups by month. To group by section instead, change the `groups` key construction in `Changelog.tsx`.
 
+## Vercel: unshallow the clone before build
+
+Vercel's default git clone is shallow (`--depth=1`). With a shallow clone, `git log --diff-filter=A` returns the deploy commit as the "added" date for every file, so every entry in the changelog shows the deploy date instead of the real creation date. The fix is one line in `vercel.json`:
+
+```json
+{
+  "buildCommand": "git fetch --unshallow 2>/dev/null || true; npm run build",
+  "outputDirectory": "build",
+  "framework": "docusaurus-2"
+}
+```
+
+`git fetch --unshallow` pulls the full history when the clone is shallow; the `2>/dev/null || true` swallows the error when the clone is already full (so the same config works locally and on Vercel). Without this, the plugin still runs cleanly but every changelog entry shows the same date.
+
 ## Gotchas
 
+- **Vercel shallow clone (resolved by the unshallow step above).** If you skip the `git fetch --unshallow` in the build command, every entry shows the deploy date. The plugin has no way to detect or warn about a shallow clone — the symptom only shows up after deploy.
 - **Squashed merges reset creation date.** If your repo squashes branches on merge, the original commit history is lost and the file's "creation date" becomes the merge date. Pre-merge dates are unrecoverable. Either don't squash, or accept the slight inaccuracy.
 - **Renames not always followed.** `git log --follow` is a best-effort heuristic. Massive renames or splits can confuse it. The fallback in this plugin uses `lastModifiedDate` if `creationDate` isn't found, which handles most edge cases.
 - **Build performance.** Each file runs two `git log` calls. On a 200-file wiki that's 400 git invocations per build. On Vercel this adds ~5–15 seconds. Acceptable for now; replace with `git log --all --name-status` parsing if it becomes a bottleneck.
