@@ -1,3 +1,5 @@
+<!-- last_updated: 2026-05-17 -->
+
 # bot-block-middleware
 
 Vercel Routing Middleware that returns `403` to known LLM training crawlers and AI-search bots by `User-Agent`. Framework-agnostic. Runs at the platform edge, before the cache, so even compliant crawlers that ignore `robots.txt` get hard-stopped.
@@ -57,18 +59,19 @@ The shipped pattern blocks (case-insensitive):
 | `GPTBot` | OpenAI | Training |
 | `OAI-SearchBot` | OpenAI | AI search |
 | `ChatGPT-User` | OpenAI | On-demand fetches inside ChatGPT |
-| `ClaudeBot`, `anthropic-ai` | Anthropic | Training |
+| `ClaudeBot`, `Claude-Web`, `anthropic-ai` | Anthropic | Training and on-demand fetches |
 | `CCBot` | Common Crawl | Public training data archive |
-| `Google-Extended` | Google | Bard/Gemini training (separate from regular Googlebot) |
+| `Google-Extended`, `GoogleOther` | Google | Bard/Gemini training (separate from regular Googlebot) |
 | `Applebot-Extended` | Apple | Apple Intelligence training |
 | `FacebookBot`, `Meta-ExternalAgent` | Meta | Llama training |
 | `Bytespider` | ByteDance | Training |
-| `PerplexityBot` | Perplexity | AI search |
+| `PerplexityBot`, `Perplexity-User` | Perplexity | AI search and on-demand fetches |
 | `Amazonbot` | Amazon | Alexa / training |
 | `AI2Bot` | Allen Institute | Research training |
 | `cohere-ai` | Cohere | Training |
 | `Diffbot`, `Omgili` | Diffbot, etc. | AI-augmented scraping |
 | `ImagesiftBot`, `YouBot`, `DuckAssistBot` | Various | AI-search/training |
+| `peer39_crawler`, `TimpiBot`, `Webzio-Extended`, `Kangaroo`, `Cotoyogi` | Various | AI training and dataset aggregation |
 
 What's **not** blocked (intentional):
 - Regular Googlebot, Bingbot, etc. (use `robots.txt` `Disallow: /` to keep them out instead).

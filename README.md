@@ -36,6 +36,7 @@ curated-wiki-integrations/
 | `wiki-changelog` | [`integrations/wiki-changelog`](./integrations/wiki-changelog) | ✅ Ready |
 | `wiki-search` | [`integrations/wiki-search`](./integrations/wiki-search) | ✅ Ready |
 | `bot-block-middleware` | [`integrations/bot-block-middleware`](./integrations/bot-block-middleware) | ✅ Ready |
+| `generate-llms-txt` | [`integrations/generate-llms-txt`](./integrations/generate-llms-txt) | ✅ Ready |
 
 Future recipes (planned, not yet extracted): no-crawl policy (`robots.txt` + matching middleware), share-button-only-for-gated-wikis, navbar-only password reset, custom font stack pinning.
 

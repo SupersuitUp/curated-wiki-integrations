@@ -1,11 +1,10 @@
 // Vercel Routing Middleware (platform-level, runs before the cache).
 // Blocks known LLM training and AI-search crawlers by User-Agent.
 // Compliant crawlers that do not honor robots.txt still get hard-stopped here.
-// Auth has moved client-side (see src/theme/Root.tsx); this middleware is
-// bot-block only.
+// Bot-block only — no auth, no password logic.
 
 const BLOCKED_BOT_PATTERN =
-  /\b(GPTBot|OAI-SearchBot|ChatGPT-User|ClaudeBot|anthropic-ai|CCBot|Google-Extended|Applebot-Extended|FacebookBot|Meta-ExternalAgent|Bytespider|PerplexityBot|Amazonbot|AI2Bot|cohere-ai|Diffbot|Omgili|ImagesiftBot|YouBot|DuckAssistBot)\b/i;
+  /\b(GPTBot|OAI-SearchBot|ChatGPT-User|ClaudeBot|Claude-Web|anthropic-ai|CCBot|Google-Extended|GoogleOther|Applebot-Extended|FacebookBot|Meta-ExternalAgent|meta-externalagent|Bytespider|PerplexityBot|Perplexity-User|Amazonbot|AI2Bot|cohere-ai|Diffbot|Omgili|ImagesiftBot|YouBot|DuckAssistBot|peer39_crawler|TimpiBot|Webzio-Extended|Kangaroo|Cotoyogi)\b/i;
 
 export default function middleware(request: Request): Response | undefined {
   const ua = request.headers.get('user-agent') ?? '';
@@ -14,7 +13,7 @@ export default function middleware(request: Request): Response | undefined {
       'Forbidden: automated training and AI-search crawlers are not permitted on this site.',
       {
         status: 403,
-        headers: {'content-type': 'text/plain; charset=utf-8'},
+        headers: { 'content-type': 'text/plain; charset=utf-8' },
       },
     );
   }
