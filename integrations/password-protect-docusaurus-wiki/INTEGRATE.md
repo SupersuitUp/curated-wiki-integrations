@@ -1,6 +1,6 @@
 # password-protect-docusaurus-wiki
 
-A client-side React password gate for Docusaurus 3 wikis, plus a paired share-link button that lets gate-knowers send auto-unlocking URLs.
+A client-side React password gate for Docusaurus 3 wikis, plus a paired share-link button that lets gate-knowers send auto-unlocking URLs. **The password is supplied via an environment variable at build time** — not hardcoded in source — so you can rotate it on Vercel without touching the repo.
 
 ## What It Does
 
@@ -9,13 +9,15 @@ A client-side React password gate for Docusaurus 3 wikis, plus a paired share-li
 - Accepts a `?key=<password>` query param on any URL: the gate auto-unlocks, the param is scrubbed from the URL with `history.replaceState`, and the flag is persisted.
 - Returns `null` until React mounts so SSG output never flashes the unauthenticated content underneath.
 - Pairs with `<ShareButton />`, an icon button you can place inside any doc (typically swizzled into `@theme/DocItem/Content`) that copies the current URL with the `?key=` param appended.
+- Reads the password from `siteConfig.customFields.wikiPassword`, which in turn reads `process.env.WIKI_PASSWORD` in `docusaurus.config.ts`. Both `Root.tsx` and `ShareButton.tsx` consume the same value through `useDocusaurusContext()` — single source of truth, no constant duplication.
+- If `WIKI_PASSWORD` is unset at build time (empty string), the gate is bypassed entirely so dev/preview deploys don't blackhole. Set the env var to enable the gate.
 
 ## Threat Model (Read This First)
 
 This is a **soft gate**. Anyone who:
 - views the page source,
-- inspects the bundled JS,
-- knows the password (it is hardcoded in source), or
+- inspects the bundled JS (the password is inlined into the client bundle at build time, regardless of whether it came from an env var or a hardcoded constant),
+- knows the password, or
 - intercepts a share link
 
 can bypass it. The intent is to:
@@ -24,6 +26,8 @@ can bypass it. The intent is to:
 - make gated content "feel" private without standing up real auth infra.
 
 Do **not** put anything in a wiki guarded only by this that requires real access control (financial data, PII, regulated data, secrets). For that, use a server-side auth provider (Vercel Authentication, Clerk, Auth0).
+
+**The env-var approach does not add security** — it adds operational convenience (rotate via `vercel env` instead of editing source). The password ends up in the client JS bundle either way.
 
 ## Files
 
@@ -36,35 +40,59 @@ The `Root.tsx` path lives at `src/theme/Root.tsx` because Docusaurus auto-discov
 
 ## Install Steps
 
-1. **Copy `Root.tsx`** to `src/theme/Root.tsx` in your Docusaurus project. (No config change needed — Docusaurus picks up `@theme/Root` swizzles automatically.)
+1. **Copy `Root.tsx`** to `src/theme/Root.tsx` in your Docusaurus project. (No config change needed for swizzle discovery — Docusaurus picks up `@theme/Root` automatically.)
 
-2. **Set the password.** At the top of `Root.tsx`:
+2. **Copy `ShareButton.tsx`** to `src/components/ShareButton.tsx`.
+
+3. **Expose the password via `customFields` in `docusaurus.config.ts`:**
 
    ```ts
-   const STORAGE_KEY = 'your_wiki_auth_v1';   // unique per wiki
-   const PASSWORD_LOWER = 'your-password';    // lowercase, will compare case-insensitively
+   const config: Config = {
+     // ...
+     customFields: {
+       // Read at build time, exposed to the client gate (src/theme/Root.tsx)
+       // and share-link button (src/components/ShareButton.tsx).
+       wikiPassword: process.env.WIKI_PASSWORD ?? '',
+     },
+     // ...
+   };
    ```
 
-   Bump `STORAGE_KEY` (e.g., `_v2`) any time you rotate the password and want existing browsers to re-enter.
+   Both `Root.tsx` and `ShareButton.tsx` read this value via `useDocusaurusContext()`. No other configuration needed.
 
-3. **Brand the gate.** The `Root.tsx` markup has a hardcoded title (`Curia Regis · Truth Wiki`), CSS-variable color references (`--color-paper`, `--color-ink`, `--color-red`), and font-family references. Replace the title and define the CSS variables in `src/css/custom.css` (or remove the variable references and inline your colors).
+4. **Set `WIKI_PASSWORD` on Vercel** for the wiki's project (Production, Preview, Development):
 
-4. **Copy `ShareButton.tsx`** to `src/components/ShareButton.tsx`.
+   ```bash
+   # From the wiki repo root, after `vercel link`:
+   printf 'your-password' | npx vercel env add WIKI_PASSWORD production
+   printf 'your-password' | npx vercel env add WIKI_PASSWORD preview
+   printf 'your-password' | npx vercel env add WIKI_PASSWORD development
+   ```
 
-5. **Set `SHARE_VALUE`** in `ShareButton.tsx` to match `PASSWORD_LOWER`. Both must stay in sync. The split exists because `ShareButton.tsx` runs in client bundles that may not import from `Root.tsx`.
+   Use `printf` not `echo` — `echo` appends a trailing `\n` that breaks the value.
 
-6. **(Optional) Inject the share button under the H1** of every doc page. Swizzle `@theme/DocItem/Content`:
+5. **Set `WIKI_PASSWORD` for local dev.** Either:
+   - Inline per command: `WIKI_PASSWORD=your-password npm start`
+   - Or `npx vercel env pull .env.local` to grab it from Vercel, then source it in your shell before starting (Docusaurus doesn't auto-load `.env` files unless you wire up `dotenv` in `docusaurus.config.ts`).
+
+   If `WIKI_PASSWORD` is unset, the gate is bypassed (`gateDisabled=true`). That's intentional so local dev and preview deploys without the env var don't black-hole.
+
+6. **Bump `STORAGE_KEY` in `Root.tsx`** when you rotate the password (e.g. `'your_wiki_auth_v1'` → `'your_wiki_auth_v2'`) so existing browsers' saved unlocks invalidate and force re-entry. Otherwise rotation only blocks new visitors.
+
+7. **Brand the gate.** `Root.tsx` has a hardcoded label (`Your Wiki · Truth Wiki`), CSS-variable color references (`--color-paper`, `--color-ink`, `--color-red`), and font-family references. Replace the label and define the CSS variables in `src/css/custom.css` (or remove the variable references and inline your colors).
+
+8. **(Optional) Inject the share button under the H1** of every doc page. Swizzle `@theme/DocItem/Content`:
 
    ```bash
    npx docusaurus swizzle @docusaurus/theme-classic DocItem/Content -- --eject --typescript
    ```
 
-   Then portal the `<ShareButton />` into a slot you create after the H1. (See `imagos-meta-repo/curia-regis-truth-wiki/src/theme/DocItem/Content/index.tsx` for the canonical pattern.)
+   Then portal the `<ShareButton />` into a slot you create after the H1. (See `imagos-meta-repo/curia-regis-truth-wiki/src/theme/DocItem/Content/index.tsx` or `supersuit-repos/supersuit-wiki/src/theme/DocItem/Content/index.tsx` for the canonical pattern.)
 
-7. **Test.**
+9. **Test.**
 
    ```bash
-   npm start
+   WIKI_PASSWORD=your-password npm start
    ```
 
    Visit `http://localhost:3000` (or whatever port Docusaurus picks). You should see the gate. Enter the password. Reload — should auto-unlock. Visit `http://localhost:3000/?key=your-password` in a fresh browser — should auto-unlock and scrub the param.
@@ -72,17 +100,18 @@ The `Root.tsx` path lives at `src/theme/Root.tsx` because Docusaurus auto-discov
 ## Customization
 
 - **Storage key versioning.** Bumping `STORAGE_KEY` invalidates every existing browser's saved state. Use this for password rotation when you want to force re-entry.
-- **Password hashing.** Replace the `===` compare with a hash check if you don't want the password sitting in plaintext in source. Note: this only raises the bar slightly — anyone who sees the source can still read the hash and brute-force it.
-- **Multiple passwords.** Replace `PASSWORD_LOWER` with `PASSWORDS_LOWER: string[]` and check inclusion. Useful if different audiences share different links.
-- **Animated entry.** The current gate is static and instant. To animate, gate the `setMounted(true)` behind a CSS animation completion, or wrap `<Root>` in a `<motion.div>`.
+- **Password hashing.** Replace the `===` compare in `Root.tsx` with a hash check if you don't want the password sitting in plaintext in the bundle. Note: anyone who sees the bundle can still read the hash and brute-force it.
+- **Multiple passwords.** Change `customFields.wikiPassword` to `wikiPasswords: (process.env.WIKI_PASSWORDS ?? '').split(',')` and check inclusion in `Root.tsx`/`ShareButton.tsx`. Useful when different audiences share different links.
+- **Animated entry.** The current gate is static and instant. To animate, gate the `setMounted(true)` behind a CSS animation completion, or wrap the gate in a `<motion.div>`.
 
 ## Gotchas
 
 - **SSG flash.** Returning `null` until mounted prevents the unauthenticated content from briefly rendering on first paint. Do not "fix" this by rendering content during SSR — it leaks the gated content into the static HTML, which crawlers (or anyone who curls the page) can then read directly.
+- **Env-var not inlined.** If you find the gate is bypassed in production, check that `WIKI_PASSWORD` is actually set on the Vercel project for the Production environment. `vercel env ls production` lists what's there. After adding a new env var, trigger a fresh deploy — Vercel inlines env vars at build time, not runtime, so existing deployments don't pick up new values automatically.
 - **localStorage failures.** Private browsing mode and some embedded browsers throw on `localStorage.setItem`. The wrapped try/catch keeps the gate working in-memory for the session even when storage is unavailable.
 - **Share-link history pollution.** Without the `history.replaceState` cleanup, the password would persist in the URL and end up in browser history, screen recordings, and logs. The cleanup is non-optional.
-- **Password compromise blast radius.** Once the password leaks, every existing share link works for whoever has it. Rotation requires updating both `Root.tsx` and `ShareButton.tsx` and bumping `STORAGE_KEY`.
-- **AAS / SSO conflicts.** If your wiki sits behind an enterprise SSO at a higher layer (e.g., Cloudflare Access), you do not need this recipe and should not stack them.
+- **Password compromise blast radius.** Once the password leaks, every existing share link works for whoever has it. Rotation requires updating `WIKI_PASSWORD` on Vercel, bumping `STORAGE_KEY` in `Root.tsx`, and redeploying.
+- **AAS / SSO conflicts.** If your wiki sits behind an enterprise SSO at a higher layer (e.g., Cloudflare Access, Vercel Authentication), you do not need this recipe and should not stack them.
 
 ## Alternatives
 
@@ -102,4 +131,4 @@ The recipe in this folder is right when:
 
 ## Source
 
-Extracted from `imagos-meta-repo/curia-regis-truth-wiki` (cream paper / Cormorant Garamond / Geist) as of 2026-05-08. The original FaithWalk OS version had a slightly older auth model (different storage key, no share-link param scrubbing). Trust this version forward.
+Extracted from `imagos-meta-repo/curia-regis-truth-wiki` (cream paper / Cormorant Garamond / Geist) as of 2026-05-08. Updated 2026-05-21 to read the password from `siteConfig.customFields.wikiPassword` (sourced from `process.env.WIKI_PASSWORD`) rather than hardcoded constants — pattern proven on `supersuit-repos/supersuit-wiki`. Trust this version forward.

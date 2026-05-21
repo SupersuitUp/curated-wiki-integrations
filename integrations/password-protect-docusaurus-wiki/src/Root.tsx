@@ -1,24 +1,32 @@
 import React, {useState, useEffect, type FormEvent} from 'react';
+import useDocusaurusContext from '@docusaurus/useDocusaurusContext';
 
-const STORAGE_KEY = 'curia_truth_auth_v1';
-const PASSWORD_LOWER = 'noah';
+// Bump (e.g. _v2) to invalidate existing browsers' saved state on password rotation.
+const STORAGE_KEY = 'your_wiki_auth_v1';
 const SHARE_PARAM = 'key';
 
 export default function Root({children}: {children: React.ReactNode}): React.ReactElement | null {
+  // Password is supplied via siteConfig.customFields.wikiPassword in docusaurus.config.ts,
+  // which in turn reads process.env.WIKI_PASSWORD at build time. See INTEGRATE.md.
+  const {siteConfig} = useDocusaurusContext();
+  const passwordLower = String(siteConfig.customFields?.wikiPassword ?? '').trim().toLowerCase();
+  const gateDisabled = passwordLower === '';
+
   const [mounted, setMounted] = useState(false);
-  const [authed, setAuthed] = useState(false);
+  const [authed, setAuthed] = useState(gateDisabled);
   const [input, setInput] = useState('');
   const [error, setError] = useState(false);
 
   useEffect(() => {
     setMounted(true);
+    if (gateDisabled) return;
     if (typeof window === 'undefined') return;
 
     try {
-      // Auto-unlock from share-link query param (e.g. ?key=noah).
+      // Auto-unlock from share-link query param (e.g. ?key=<password>).
       const params = new URLSearchParams(window.location.search);
       const sharedKey = params.get(SHARE_PARAM);
-      if (sharedKey && sharedKey.trim().toLowerCase() === PASSWORD_LOWER) {
+      if (sharedKey && sharedKey.trim().toLowerCase() === passwordLower) {
         try {
           window.localStorage.setItem(STORAGE_KEY, 'yes');
         } catch {
@@ -43,7 +51,7 @@ export default function Root({children}: {children: React.ReactNode}): React.Rea
     } catch {
       // localStorage unavailable (private mode, etc.) — stay locked
     }
-  }, []);
+  }, [gateDisabled, passwordLower]);
 
   if (!mounted) {
     return null;
@@ -52,7 +60,7 @@ export default function Root({children}: {children: React.ReactNode}): React.Rea
   if (!authed) {
     const handleSubmit = (e: FormEvent) => {
       e.preventDefault();
-      if (input.trim().toLowerCase() === PASSWORD_LOWER) {
+      if (input.trim().toLowerCase() === passwordLower) {
         try {
           window.localStorage.setItem(STORAGE_KEY, 'yes');
         } catch {
@@ -102,7 +110,7 @@ export default function Root({children}: {children: React.ReactNode}): React.Rea
               fontWeight: 500,
             }}
           >
-            Curia Regis · Truth Wiki
+            Your Wiki · Truth Wiki
           </p>
           <h1
             style={{

@@ -1,16 +1,23 @@
 import React, {useCallback, useState} from 'react';
+import useDocusaurusContext from '@docusaurus/useDocusaurusContext';
 
 const SHARE_PARAM = 'key';
-const SHARE_VALUE = 'noah';
 
 export default function ShareButton(): React.ReactElement | null {
+  // Shares the same password as Root.tsx via siteConfig.customFields.wikiPassword.
+  // No env-var or constant duplication — single source of truth in docusaurus.config.ts.
+  const {siteConfig} = useDocusaurusContext();
+  const shareValue = String(siteConfig.customFields?.wikiPassword ?? '');
+
   const [copied, setCopied] = useState(false);
 
   const handleCopy = useCallback(async () => {
     if (typeof window === 'undefined') return;
 
     const url = new URL(window.location.href);
-    url.searchParams.set(SHARE_PARAM, SHARE_VALUE);
+    if (shareValue) {
+      url.searchParams.set(SHARE_PARAM, shareValue);
+    }
     const shareUrl = url.toString();
 
     try {
@@ -20,7 +27,7 @@ export default function ShareButton(): React.ReactElement | null {
     } catch {
       window.prompt('Copy this link:', shareUrl);
     }
-  }, []);
+  }, [shareValue]);
 
   return (
     <div
