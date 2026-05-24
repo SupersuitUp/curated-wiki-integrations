@@ -1,0 +1,63 @@
+---
+title: "{{SOURCE_NAME}}"
+slug: /{{SECTION_SLUG}}/{{SOURCE_SLUG}}
+description: "{{SOURCE_ONE_LINE_DESCRIPTION}}"
+---
+
+# {{SOURCE_NAME}}
+
+*{{SOURCE_ONE_LINE_DESCRIPTION}}*
+
+---
+
+## Background
+
+{{Where they have operated, what they have built, what gives them standing on this wiki.
+2-4 sentences. Names of companies, scale of operations, public-facing artifacts. No hype.}}
+
+## Why they are on this wiki
+
+{{What specifically this source contributes that the wiki could not assemble otherwise.
+1-3 sentences. Plain about the angle this source occupies.}}
+
+## Contributions
+
+{{The principles, concepts, perspectives, or playbooks this source has shaped on this wiki.
+Cross-link with absolute paths. Brief gloss after each link.}}
+
+- **[Contribution Title](/contributions/slug)**: one-line gloss of what this contribution is.
+
+## Field Notes
+
+<!--
+Chronological log of specific lifts from this source. Optional.
+Delete this section if the wiki does not maintain per-source logs.
+Add entries in reverse-chronological order (most recent first).
+-->
+
+### {{YYYY-MM-DD}} — "{{Piece Title}}" ({{Format: YouTube / book chapter / podcast / article}})
+
+{{What was lifted in 2-5 sentences.}}
+
+> "Verbatim quote here, if used."
+>
+> {{Source Name}}, [{{Piece Title}}]({{URL}}), {{Format}}, {{YYYY-MM-DD}}
+
+Where each insight landed on the wiki: {{cross-links}}.
+
+## How to cite them
+
+{{Source Name}}'s {{public teaching content / published books / firm publications}} is the source. Cite by name, source title, and date.
+
+For verbatim quotes, use a blockquote:
+
+> Quote text here.
+>
+> — {{Source Name}}, [Source title](URL), YYYY-MM-DD
+
+When a principle on this wiki is distilled rather than quoted verbatim, note the source at the top of the principle page in the format: "*Distilled from [{{Source Name}}](/{{SECTION_SLUG}}/{{SOURCE_SLUG}}), '[Source title](URL)', {{Format}}, YYYY-MM-DD.*"
+
+## Further Reading
+
+- [Contributions list](/contributions/slug): one of their canonical contributions on this wiki
+- [{{SECTION_TITLE}}](/{{SECTION_SLUG}}): the other sources on this wiki

@@ -1,0 +1,46 @@
+---
+title: {{SECTION_TITLE}}
+slug: /{{SECTION_SLUG}}
+description: "{{SECTION_DESCRIPTION}}"
+---
+
+# {{SECTION_TITLE}}
+
+*{{SECTION_DESCRIPTION}}*
+
+---
+
+{{INTRO_PARAGRAPH}}
+
+## Source categories
+
+<!--
+Pick the categories that apply to this wiki. Delete the ones that don't.
+The canonical three from agenticbusiness.wiki are below — adapt freely.
+-->
+
+**Private-conversation sources, anonymized as archetypes.** Operators or practitioners who shared their thinking in real conversations with the wiki's stewards. Their wisdom is distilled here under archetype names that capture their posture without identifying them. Personal details, organizations, geographies, and biographical specifics stay off the wiki. The conversations are real and the dates are recorded.
+
+**Published-work sources, cited by author or firm.** Sources whose published books, papers, or formal publications are the canonical reference. The source is public, the citation includes the author or firm by name, and the page summarizes the relevant arc and links out to it. No quoting from secondary podcast appearances. The publication is the source.
+
+**Public-teaching sources, cited by name.** Practitioners whose own public teaching content (videos, training programs, talks, newsletters under their own brand) is the source. Their teaching is already public; the citation matches.
+
+## How sources get added
+
+A source lands on this wiki when three things are true. They have operated at a level that produces insight most readers do not have access to. They fit one of the source categories above. They have consented to being included, or (in the published-source cases) their public work is the consent.
+
+The wiki is selective on purpose. Adding a source is a credibility statement.
+
+## The sources
+
+<!--
+List entries with absolute-path cross-links to each source page. Update as the section grows.
+Keep entries short — the per-source page carries the substance.
+-->
+
+- **[Example Source Name](/{{SECTION_SLUG}}/example-source-slug)** *(source category)*: one-line stance + what they contribute to this wiki.
+
+## Further Reading
+
+- [Section A](/section-a): related body of work on the wiki
+- [Section B](/section-b): another related section
