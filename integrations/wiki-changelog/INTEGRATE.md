@@ -2,7 +2,7 @@
 
 A git-derived "what was added when" log for Docusaurus 3 wikis. Two surfaces:
 
-- **`<RecentlyAdded />`**: a compact widget that shows the N most-recently-modified entries, ideal for the wiki home page.
+- **`<ChangelogWidget />`**: the Changelog widget — a compact widget that shows the N most-recently-modified entries, ideal for the wiki home page.
 - **`<Changelog />`**: a full monthly-grouped log of every entry, ideal for a dedicated `/changelog` page.
 
 Both are powered by a custom Docusaurus plugin that walks `docs/`, runs `git log --follow` per file to extract first-commit and last-commit dates (so renames don't reset the date), and exposes everything as plugin global data.
@@ -16,7 +16,7 @@ Both are powered by a custom Docusaurus plugin that walks `docs/`, runs `git log
 - It parses the file's frontmatter to extract `title`, `description`, and `slug` (so links go to the canonical URL, not the file path).
 - It excludes `index` and `intro` files from the listing (they're navigational, not content).
 - It exposes the full list to React via `useGlobalData()` under the key `creation-date-plugin`.
-- The two components consume the same data: `RecentlyAdded` slices and renders the top N; `Changelog` groups by month and renders all of it.
+- The two components consume the same data: `ChangelogWidget` slices and renders the top N; `Changelog` groups by month and renders all of it.
 
 ## Why Git-Derived (Not Frontmatter)
 
@@ -34,7 +34,7 @@ plugin/
   package.json           → wiki/plugins/creation-date-plugin/package.json
   src/index.ts           → wiki/plugins/creation-date-plugin/src/index.ts
 components/
-  RecentlyAdded.tsx      → wiki/src/components/RecentlyAdded.tsx
+  ChangelogWidget.tsx    → wiki/src/components/ChangelogWidget.tsx
   Changelog.tsx          → wiki/src/components/Changelog.tsx
 docs/
   changelog.mdx          → wiki/docs/changelog.mdx
@@ -55,17 +55,17 @@ docs/
 
 3. **Copy both components** to `wiki/src/components/`.
 
-4. **Adjust `SECTION_LABELS`** in both `RecentlyAdded.tsx` and `Changelog.tsx`. The shipped version assumes Curia Regis sections (`concepts`, `guides`, `case-studies`). Replace with your wiki's top-level folders (e.g., `perspectives`, `principles`, `patterns`).
+4. **Adjust `SECTION_LABELS`** in both `ChangelogWidget.tsx` and `Changelog.tsx`. The shipped version assumes Curia Regis sections (`concepts`, `guides`, `case-studies`). Replace with your wiki's top-level folders (e.g., `perspectives`, `principles`, `patterns`).
 
 5. **Use the components.**
 
    In your home page (e.g., `docs/index.mdx`):
 
    ```mdx
-   import RecentlyAdded from '@site/src/components/RecentlyAdded';
+   import ChangelogWidget from '@site/src/components/ChangelogWidget';
 
-   ## Recently added or updated
-   <RecentlyAdded limit={8} />
+   ## Changelog
+   <ChangelogWidget limit={8} />
    ```
 
    In a dedicated changelog page (`docs/changelog.mdx`, which this recipe ships):
@@ -96,7 +96,7 @@ docs/
 
 ## New / Updated badges
 
-Each row in both `RecentlyAdded` and `Changelog` is prefixed with a small pill badge: **New** (green) when the file's first git commit and most recent commit are the same (i.e., it has not been edited since creation), or **Updated** (blue) when the dates diverge.
+Each row in both `ChangelogWidget` and `Changelog` is prefixed with a small pill badge: **New** (green) when the file's first git commit and most recent commit are the same (i.e., it has not been edited since creation), or **Updated** (blue) when the dates diverge.
 
 `Changelog` honors its `sortBy` prop when assigning the badge:
 - `sortBy="created"` (default): every row is anchored to the creation event, so the badge is always **New**.
@@ -106,8 +106,8 @@ The badge styles are inlined in each component as `NEW_BADGE_STYLE` and `UPDATED
 
 ## Customization
 
-- **Sort by created vs. updated.** `Changelog` accepts a `sortBy="created" | "updated"` prop (default `"created"`). `RecentlyAdded` always sorts by `lastModifiedDate` (most recent activity first).
-- **`RecentlyAdded` props.** `limit` (default `7`) and `showSectionLabels` (default `true`).
+- **Sort by created vs. updated.** `Changelog` accepts a `sortBy="created" | "updated"` prop (default `"created"`). `ChangelogWidget` always sorts by `lastModifiedDate` (most recent activity first).
+- **`ChangelogWidget` props.** `limit` (default `7`) and `showSectionLabels` (default `true`).
 - **Excluding files.** Add to the `EXCLUDED_LEAF_KEYS` set in `plugin/src/index.ts` (e.g., `['index', 'intro', 'changelog']` if you want the changelog itself excluded from its own list).
 - **Custom date formatting.** The components currently use `toLocaleDateString` for month headings and `toISOString().slice(0, 10)` for daily dates. Replace with your preferred format.
 - **Section grouping.** `Changelog` groups by month. To group by section instead, change the `groups` key construction in `Changelog.tsx`.

@@ -100,7 +100,7 @@ const UPDATED_BADGE_STYLE: React.CSSProperties = {
   verticalAlign: 'middle',
 };
 
-export default function RecentlyAdded({
+export default function ChangelogWidget({
   limit = 7,
   showSectionLabels = true,
 }: Props) {
