@@ -12,6 +12,8 @@ A client-side React password gate for Docusaurus 3 wikis, plus a paired share-li
 - Reads the password from `siteConfig.customFields.wikiPassword`, which in turn reads `process.env.WIKI_PASSWORD` in `docusaurus.config.ts`. Both `Root.tsx` and `ShareButton.tsx` consume the same value through `useDocusaurusContext()` — single source of truth, no constant duplication.
 - If `WIKI_PASSWORD` is unset at build time (empty string), the gate is bypassed entirely so dev/preview deploys don't blackhole. Set the env var to enable the gate.
 
+> **If the wiki deploys to Vercel, prefer [`password-gate-edge-middleware`](../password-gate-edge-middleware) instead.** It checks the password at the edge, so the password never enters the JS bundle, and the unlock proof is an HMAC-signed HttpOnly cookie rather than a `localStorage` boolean. Use this client-side recipe when the host is not Vercel, or when you specifically need the `?key=` share-link auto-unlock flow below. Do not run both.
+
 ## Threat Model (Read This First)
 
 This is a **soft gate**. Anyone who:

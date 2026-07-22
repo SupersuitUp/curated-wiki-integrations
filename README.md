@@ -32,12 +32,15 @@ curated-wiki-integrations/
 
 | Recipe | Folder | Status |
 |--------|--------|--------|
+| `password-gate-edge-middleware` | [`integrations/password-gate-edge-middleware`](./integrations/password-gate-edge-middleware) | ✅ Ready |
 | `password-protect-docusaurus-wiki` | [`integrations/password-protect-docusaurus-wiki`](./integrations/password-protect-docusaurus-wiki) | ✅ Ready |
 | `wiki-changelog` | [`integrations/wiki-changelog`](./integrations/wiki-changelog) | ✅ Ready |
 | `wiki-search` | [`integrations/wiki-search`](./integrations/wiki-search) | ✅ Ready |
 | `bot-block-middleware` | [`integrations/bot-block-middleware`](./integrations/bot-block-middleware) | ✅ Ready |
 | `generate-llms-txt` | [`integrations/generate-llms-txt`](./integrations/generate-llms-txt) | ✅ Ready |
 | `field-note-sharers` | [`integrations/field-note-sharers`](./integrations/field-note-sharers) | ✅ Ready |
+
+**Two password gates, pick one.** `password-gate-edge-middleware` checks at the Vercel edge and keeps the password out of the JS bundle; it is the default for any wiki on Vercel. `password-protect-docusaurus-wiki` checks in the browser and inlines the password into the bundle, but works on any static host and ships the `?key=` share-link flow. Do not run both.
 
 Future recipes (planned, not yet extracted): no-crawl policy (`robots.txt` + matching middleware), share-button-only-for-gated-wikis, navbar-only password reset, custom font stack pinning.
 
