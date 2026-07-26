@@ -33,6 +33,7 @@ This version skips the manual field and reads directly from git. Renames are fol
 plugin/
   package.json           → wiki/plugins/creation-date-plugin/package.json
   src/index.ts           → wiki/plugins/creation-date-plugin/src/index.ts
+  src/collect.ts         → wiki/plugins/creation-date-plugin/src/collect.ts
 components/
   ChangelogWidget.tsx    → wiki/src/components/ChangelogWidget.tsx
   Changelog.tsx          → wiki/src/components/Changelog.tsx
@@ -109,29 +110,50 @@ The badge styles are inlined in each component as `NEW_BADGE_STYLE` and `UPDATED
 - **Sort by created vs. updated.** `Changelog` accepts a `sortBy="created" | "updated"` prop (default `"created"`). `ChangelogWidget` always sorts by `lastModifiedDate` (most recent activity first).
 - **`ChangelogWidget` props.** `limit` (default `7`) and `showSectionLabels` (default `true`).
 - **Excluding files.** Add to the `EXCLUDED_LEAF_KEYS` set in `plugin/src/index.ts` (e.g., `['index', 'intro', 'changelog']` if you want the changelog itself excluded from its own list).
-- **Custom date formatting.** The components currently use `toLocaleDateString` for month headings and `toISOString().slice(0, 10)` for daily dates. Replace with your preferred format.
+- **Custom date formatting.** Rows and month headings both read the leading `YYYY-MM-DD` of the commit's ISO date, which carries the committer's own offset. Do not convert to UTC first: that pushes an evening commit onto the next day, and sometimes into the next month.
 - **Section grouping.** `Changelog` groups by month. To group by section instead, change the `groups` key construction in `Changelog.tsx`.
 
-## Vercel: unshallow the clone before build
+## Vercel: commit the history snapshot
 
-Vercel's default git clone is shallow (`--depth=1`). With a shallow clone, `git log --diff-filter=A` returns the deploy commit as the "added" date for every file, so every entry in the changelog shows the deploy date instead of the real creation date. The fix is one line in `vercel.json`:
+**Do not put `git fetch --unshallow` in the build command.** Earlier versions of
+this recipe said to, and it does not work. Vercel's build container clones the
+repo shallow AND strips the git remote, so inside a build `git remote -v` is
+empty, any fetch dies with `fatal: 'origin' does not appear to be a git
+repository`, and `git fetch --unshallow` exits 0 having done nothing at all.
+(Verified on way-of-fire-wiki, 2026-07-26: `shallow=true commits=10` before and
+after the fetch.) No build command can recover history the container was never
+given.
+
+So history rides along in the repo instead. The plugin keeps a snapshot at
+`src/data/changelog-events.json`:
+
+- On a **full clone** (your laptop) a build rewrites the snapshot from git.
+- On a **shallow clone** (Vercel) the plugin leaves the snapshot alone and
+  merges it with whatever recent history the clone does carry, live git winning
+  on collision so titles track the working tree.
+
+**Run a local build and commit the JSON when it changes**, the same discipline
+as any other generated-and-committed artifact. Skip it and production quietly
+shows only the last couple of weeks while your laptop shows everything, which is
+exactly the failure this recipe used to ship with.
+
+`vercel.json` needs nothing special:
 
 ```json
 {
-  "buildCommand": "git fetch --unshallow 2>/dev/null || true; npm run build",
   "outputDirectory": "build",
   "framework": "docusaurus-2"
 }
 ```
 
-`git fetch --unshallow` pulls the full history when the clone is shallow; the `2>/dev/null || true` swallows the error when the clone is already full (so the same config works locally and on Vercel). Without this, the plugin still runs cleanly but every changelog entry shows the same date.
-
 ## Gotchas
 
-- **Vercel shallow clone (resolved by the unshallow step above).** If you skip the `git fetch --unshallow` in the build command, every entry shows the deploy date. The plugin has no way to detect or warn about a shallow clone — the symptom only shows up after deploy.
+- **A stale snapshot silently truncates production.** The symptom only shows up after deploy: your laptop renders the full log, the deployed site starts at whenever Vercel's clone window begins. Run a local build and commit `src/data/changelog-events.json`.
+- **Docusaurus root in a subdirectory.** `git log --name-status` prints paths relative to the REPO root, not the directory it ran in, so a site living in e.g. `wiki/` sees `wiki/docs/...` and matches nothing. The collector strips the site's own prefix via `git rev-parse --show-prefix`; that is a no-op when the site IS the repo root.
+- **The shallow clone's boundary commit lies.** Git presents the commit where a shallow clone is cut off as a root commit, so every file that merely EXISTED at that point reports as freshly added. Left alone that invents a "New" event for most of the wiki, dated whenever the clone window happens to start (56 of them on the wiki this was found on). The collector drops events from the commits listed in `.git/shallow`.
 - **Squashed merges reset creation date.** If your repo squashes branches on merge, the original commit history is lost and the file's "creation date" becomes the merge date. Pre-merge dates are unrecoverable. Either don't squash, or accept the slight inaccuracy.
 - **Renames not always followed.** `git log --follow` is a best-effort heuristic. Massive renames or splits can confuse it. The fallback in this plugin uses `lastModifiedDate` if `creationDate` isn't found, which handles most edge cases.
-- **Build performance.** Each file runs two `git log` calls. On a 200-file wiki that's 400 git invocations per build. On Vercel this adds ~5–15 seconds. Acceptable for now; replace with `git log --all --name-status` parsing if it becomes a bottleneck.
+- **Build performance.** One `git log --name-status` pass over `docs/` covers the whole history, plus a `git show` per doc that no longer exists in the working tree (to recover its title). Negligible on a shallow clone, where there is almost no history to walk.
 - **Empty repo on first build.** If the wiki has never been committed, `git log` returns nothing and every file is excluded. First commit before first build.
 - **Local dev incremental builds.** The plugin's `loadContent` runs on every restart but Docusaurus caches it across HMR cycles within a single dev session. To see updated dates without restarting, edit a file and let Docusaurus rebuild.
 - **`useGlobalData()` typing.** The component casts the global data to a typed shape. If you change the plugin's output shape, update both consumers.
