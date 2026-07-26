@@ -39,6 +39,7 @@ function parseFrontmatter(content: string): {
   description?: string;
   slug?: string;
   sidebarLabel?: string;
+  draft?: boolean;
 } {
   const match = content.match(/^---\n([\s\S]*?)\n---/);
   if (!match) return {};
@@ -47,6 +48,7 @@ function parseFrontmatter(content: string): {
   const descMatch = fm.match(/description:\s*"((?:[^"\\]|\\.)*)"/);
   const slugMatch = fm.match(/slug:\s*"?([^"\n]+?)"?\s*$/m);
   const labelMatch = fm.match(/sidebar_label:\s*"?([^"\n]+?)"?\s*$/m);
+  const draftMatch = fm.match(/^draft:\s*true\s*$/m);
   return {
     title: titleMatch
       ? titleMatch[1].trim().replace(/^"/, '').replace(/"$/, '')
@@ -58,6 +60,7 @@ function parseFrontmatter(content: string): {
     sidebarLabel: labelMatch
       ? labelMatch[1].trim().replace(/^"/, '').replace(/"$/, '')
       : undefined,
+    draft: draftMatch ? true : undefined,
   };
 }
 
@@ -124,6 +127,20 @@ export function collectChangeEvents(siteDir: string): ChangeEvent[] {
     string,
     { title: string; description?: string; routePath: string }
   >();
+  // Draft pages are excluded from the production build, so they are excluded
+  // from the changelog too. Every event for a drafted docKey is skipped below,
+  // including its historical "new"/"updated" rows, so flipping a page to draft
+  // removes it from the changelog entirely rather than surfacing an "updated"
+  // (or, if deleted, "removed") event.
+  const draftKeys = new Set<string>();
+  // A page that moved folders (e.g. foundations/ -> perspectives/) has history
+  // under its OLD docKey too. The filename basename is stable across such
+  // moves, so also skip events whose leaf matches a drafted page's leaf.
+  // ('index' is already excluded, so never key on it.)
+  const draftLeafKeys = new Set<string>();
+  const draftLeaf = (docKey: string): string | undefined =>
+    docKey.split('/').pop()?.replace(/^_/, '');
+
   const walk = (dir: string, base = '') => {
     for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
       const full = path.join(dir, entry.name);
@@ -134,6 +151,16 @@ export function collectChangeEvents(siteDir: string): ChangeEvent[] {
         const docKey = rel.replace(/\.mdx?$/, '');
         const raw = fs.readFileSync(full, 'utf-8');
         const fm = parseFrontmatter(raw);
+        if (fm.draft) {
+          draftKeys.add(docKey);
+          // Strip a leading "_": a hidden page is often also renamed with an
+          // underscore prefix (Docusaurus ignores `_*` files) while its git
+          // history sits under the un-prefixed name. Key on the bare basename
+          // so both resolve to the same leaf.
+          const leaf = draftLeaf(docKey);
+          if (leaf && leaf !== 'index') draftLeafKeys.add(leaf);
+          continue;
+        }
         currentMeta.set(docKey, {
           title: displayTitle(raw, docKey),
           description: fm.description,
@@ -236,6 +263,12 @@ export function collectChangeEvents(siteDir: string): ChangeEvent[] {
 
     const docKey = docKeyFromRepoPath(repoRelPath, sitePrefix);
     if (!docKey || isExcluded(docKey)) continue;
+    // A page currently marked draft is invisible everywhere, including here:
+    // drop all of its history, including events recorded under an older path
+    // it has since moved away from.
+    if (draftKeys.has(docKey)) continue;
+    const movedLeaf = draftLeaf(docKey);
+    if (movedLeaf && draftLeafKeys.has(movedLeaf)) continue;
     const section = docKey.split('/')[0];
 
     if (type === 'removed') {
