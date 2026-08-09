@@ -1,0 +1,50 @@
+// PASTE-IN SNIPPET for wherever the wiki already injects per-page controls
+// (a DocItem/Content swizzle, a custom meta row, a footer component).
+//
+// This code only ever runs for the AUTHORIZED owner: share recipients have
+// /assets/js gated, so hydration never happens for them, and /api/share 401s
+// without a valid session anyway. Two independent reasons, which is the point.
+
+const shareBtn = document.createElement('button');
+shareBtn.type = 'button';
+shareBtn.textContent = 'Copy 24h share link';
+shareBtn.style.cssText =
+  'font-size: 0.75rem; padding: 0.2rem 0.6rem; border-radius: 6px; ' +
+  'border: 1px solid var(--ifm-color-emphasis-300); background: transparent; ' +
+  'color: var(--ifm-color-emphasis-700); cursor: pointer;';
+
+shareBtn.addEventListener('click', async () => {
+  shareBtn.textContent = 'Minting…';
+  let url = '';
+  try {
+    const res = await fetch('/api/share', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ path: window.location.pathname.replace(/\/$/, '') }),
+    });
+    if (!res.ok) throw new Error(String(res.status));
+    ({ url } = await res.json());
+  } catch {
+    shareBtn.textContent = 'Share failed';
+    setTimeout(() => { shareBtn.textContent = 'Copy 24h share link'; }, 4000);
+    return;
+  }
+  // The clipboard write runs AFTER an await, so a strict browser (Safari) may refuse
+  // it: user activation expired. The link exists either way, so NEVER report failure
+  // once minting succeeded. Fall back to showing the link.
+  try {
+    await navigator.clipboard.writeText(url);
+    shareBtn.textContent = 'Link copied ✓ lasts 24h';
+    setTimeout(() => { shareBtn.textContent = 'Copy 24h share link'; }, 4000);
+  } catch {
+    const a = document.createElement('a');
+    a.href = url;
+    a.target = '_blank';
+    a.rel = 'noopener';
+    a.textContent = 'Link ready ✓ open it (lasts 24h)';
+    a.style.cssText = shareBtn.style.cssText + 'text-decoration: none; display: inline-block;';
+    shareBtn.replaceWith(a);
+  }
+});
+
+// Append shareBtn wherever the page's control row lives.

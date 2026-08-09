@@ -39,10 +39,13 @@ curated-wiki-integrations/
 | `bot-block-middleware` | [`integrations/bot-block-middleware`](./integrations/bot-block-middleware) | ✅ Ready |
 | `generate-llms-txt` | [`integrations/generate-llms-txt`](./integrations/generate-llms-txt) | ✅ Ready |
 | `field-note-sharers` | [`integrations/field-note-sharers`](./integrations/field-note-sharers) | ✅ Ready |
+| `one-off-page-sharing` | [`integrations/one-off-page-sharing`](./integrations/one-off-page-sharing) | ✅ Ready |
 
 **Two password gates, pick one.** `password-gate-edge-middleware` checks at the Vercel edge and keeps the password out of the JS bundle; it is the default for any wiki on Vercel. `password-protect-docusaurus-wiki` checks in the browser and inlines the password into the bundle, but works on any static host and ships the `?key=` share-link flow. Do not run both.
 
-Future recipes (planned, not yet extracted): no-crawl policy (`robots.txt` + matching middleware), share-button-only-for-gated-wikis, navbar-only password reset, custom font stack pinning.
+**Sharing one page is a separate recipe from the gate.** `one-off-page-sharing` layers on either gate and sends a single page to someone who should not see the rest: an unguessable `/s/<ref>` address serving a chrome-less, cross-link-stripped mirror, minted as a 24h token from a button on the page. The `?key=` share link in `password-protect-docusaurus-wiki` does the opposite job (it hands over the whole wiki) and the two coexist fine.
+
+Future recipes (planned, not yet extracted): no-crawl policy (`robots.txt` + matching middleware), navbar-only password reset, custom font stack pinning.
 
 ## How To Use A Recipe
 
