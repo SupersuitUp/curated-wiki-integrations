@@ -46,6 +46,18 @@ EOF
 # --- Walk + emit -------------------------------------------------------------
 
 find "$DOCS_DIR" -name "*.md" -o -name "*.mdx" | sort | while read -r file; do
+  # Skip pages Docusaurus itself does not publish. `draft: true` is excluded from
+  # the production build entirely and `unlisted: true` is kept out of search and
+  # the sitemap, so neither belongs in an UNGATED machine corpus that other
+  # agents read. Without this, hiding a page from the site still published its
+  # full body here, so a page pulled from the site kept shipping to every agent
+  # that reads llms-full.txt. Only the frontmatter block is inspected, so the
+  # word "draft" in prose cannot suppress a live page.
+  frontmatter=$(awk 'NR==1&&$0!="---"{exit}NR>1{if($0=="---")exit;print}' "$file")
+  if printf '%s\n' "$frontmatter" | grep -qE '^(draft|unlisted):[[:space:]]*true[[:space:]]*$'; then
+    continue
+  fi
+
   # Extract title from frontmatter
   title=$(grep -m1 '^title:' "$file" 2>/dev/null | sed 's/^title:[[:space:]]*//' | sed 's/^"//' | sed 's/"$//' || echo "")
 
@@ -84,8 +96,12 @@ find "$DOCS_DIR" -name "*.md" -o -name "*.mdx" | sort | while read -r file; do
   echo "# $title" >> "$LLMS_FULL"
   echo "URL: $url" >> "$LLMS_FULL"
   echo "" >> "$LLMS_FULL"
-  # Strip frontmatter and emit body
-  awk '/^---$/{if(++c==2)next}c>=2' "$file" >> "$LLMS_FULL"
+  # Strip frontmatter, then strip the MDX-only syntax that never renders on the page:
+  # {/* authoring comments */} (often internal notes, must not ship) and `import`
+  # statements. Whatever a reader cannot see on the page does not belong in the corpus.
+  awk '/^---$/{if(++c==2)next}c>=2' "$file" \
+    | perl -0777 -pe 's/\{\/\*.*?\*\/\}\n?//gs' \
+    | grep -v '^import .* from ' >> "$LLMS_FULL"
   echo "" >> "$LLMS_FULL"
   echo "" >> "$LLMS_FULL"
 done
